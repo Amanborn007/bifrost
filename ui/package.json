@@ -45,12 +45,12 @@
     "@vitejs/plugin-react": "^6.0.2",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.4.0",
     "jsdom": "^29.1.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.60.1",
-    "vite": "^8.0.16",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.6",
     "vitest": "^4.1.8"
   },
   "overrides": {
