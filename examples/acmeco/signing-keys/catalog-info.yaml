@@ -1,0 +1,16 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: signing-keys
+  description: HMAC signing secrets and rotation for webhook payloads
+  labels:
+    region: us-eu
+  annotations:
+    github.com/project-slug: acmeco/signing-keys
+    acmeco.example/tier: "0"
+    acmeco.example/regions: "us,eu"
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/plat
+  system: webhook-delivery

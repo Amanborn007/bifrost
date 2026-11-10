@@ -1,0 +1,236 @@
+name: PR check
+
+# Server-side CI mirroring scripts/pr-stability-check.sh.
+#
+# Trigger: pull_request only. NEVER pull_request_target — the latter
+# runs in the base repo's context with secrets, which a malicious
+# fork PR can abuse.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python — imports + tests + audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Postgres + pgvector so the integration tests (conftest.py engine
+    # fixture) can connect at localhost:5432. Without this service the
+    # adapter round-trip test fails immediately with [Errno 111]
+    # Connection refused.
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg16
+        env:
+          POSTGRES_USER: bifrost
+          POSTGRES_PASSWORD: bifrost_dev
+          POSTGRES_DB: bifrost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bifrost -d bifrost_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # Mirrors the default in tests/conftest.py — kept explicit here
+      # so the CI URL stays decoupled from any local-dev defaults.
+      TEST_DATABASE_URL: postgresql+asyncpg://bifrost:bifrost_dev@localhost:5432/bifrost_test
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv==0.4.30
+
+      - name: Sync deps (locked)
+        run: uv sync --locked --all-extras --dev
+
+      - name: Ruff lint
+        run: uv run ruff check src/ tests/
+        # Hard-fail. Baseline was cleaned up with
+        # ``ruff --fix --unsafe-fixes`` + a targeted ignore list in
+        # pyproject.toml; any new violation is a regression worth
+        # blocking on. To skip a specific finding, add a localized
+        # ``# noqa: <RULE>`` comment with rationale.
+
+      - name: Ruff format check
+        run: uv run ruff format --check src/ tests/
+        # Hard-fail. Codebase is fully formatted as
+        # of the baseline sweep; running ``ruff format`` locally
+        # before commit keeps CI green.
+
+      - name: Pyright gate (runtime-crash rules only)
+        run: uv run python scripts/pyright_gate.py
+
+      - name: Import every bifrost.* module (catches shadow-imports)
+        run: |
+          uv run python -c "
+          import importlib, pkgutil, sys
+          import bifrost
+          failed = []
+          for m in pkgutil.walk_packages(bifrost.__path__, prefix='bifrost.'):
+              try:
+                  importlib.import_module(m.name)
+              except Exception as e:
+                  failed.append(f'{m.name}: {e}')
+          if failed:
+              for f in failed: print(f, file=sys.stderr)
+              sys.exit(1)
+          print('all bifrost.* modules import cleanly')
+          "
+
+      - name: Shadow-import audit (function-scope imports of module-level symbols)
+        run: bash scripts/pr-stability-check.sh --skip-ui --skip-services --json | head -200 || true
+        # The full script is interactive-friendly; rely on it for the
+        # detailed report and exit code.
+
+      - name: Run pytest
+        run: uv run pytest tests/ -q --ignore=tests/e2e
+        # Dropped ``-x`` (fail-fast). With it, a single failure hides
+        # every later failure and triaging each batch becomes whack-
+        # a-mole. The full list lets us xfail-mark pre-existing
+        # failures in one pass instead of N CI rounds.
+
+      - name: pip-audit (transitive CVEs)
+        run: |
+          pip install pip-audit
+          uv export --no-dev --format requirements-txt > /tmp/reqs.txt
+          pip-audit -r /tmp/reqs.txt --strict
+        continue-on-error: true
+        # Soft-fail for now until baseline is clean. Convert to hard-fail
+        # in a follow-up PR after triaging current findings.
+
+  ui:
+    name: UI — typecheck + vitest + audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install (frozen lockfile)
+        run: npm ci
+
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+
+      - name: Vitest
+        run: npx vitest run
+
+      - name: npm audit (production deps)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
+        # Same soft-fail rationale as pip-audit.
+
+  alembic:
+    name: Alembic — head matches filesystem max
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Compare alembic heads
+        run: |
+          MAX_FS=$(ls alembic/versions/*.py 2>/dev/null \
+            | sed -E 's|.*/([0-9]+).*|\1|' | sort -n | tail -1)
+          echo "Filesystem max migration: $MAX_FS"
+          # Python parses each file's down_revision so we can detect
+          # multiple heads (which would be a merge conflict).
+          python3 - <<'EOF'
+          import re, glob, sys
+          revs = {}
+          for path in glob.glob('alembic/versions/*.py'):
+              src = open(path).read()
+              rev_m = re.search(r"^revision\s*[:=]\s*['\"]([^'\"]+)", src, re.M)
+              down_m = re.search(r"^down_revision\s*[:=]\s*['\"]([^'\"]+)", src, re.M)
+              if rev_m:
+                  revs[rev_m.group(1)] = down_m.group(1) if down_m else None
+          # Heads = revs that nothing else has as a down_revision
+          downs = {d for d in revs.values() if d}
+          heads = [r for r in revs if r not in downs]
+          print(f"Heads: {heads}")
+          if len(heads) > 1:
+              print(f"ERROR: multiple alembic heads ({heads}). Merge them first.", file=sys.stderr)
+              sys.exit(1)
+          EOF
+
+  no-browser-automation:
+    # Project invariant (CLAUDE.md anti-pattern #10): Bifrost
+    # MUST NOT use browser-automation libraries for extraction or
+    # research. All external data flows through git clone + MCP servers
+    # + gh CLI. This gate fails any PR that introduces these packages
+    # or imports them under src/.
+    name: No browser automation in extraction
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Forbidden imports in src/
+        run: |
+          set -euo pipefail
+          PATTERNS='(import|from)\s+(puppeteer|playwright|selenium|webdriver|browser_use|pyppeteer|splinter|undetected_chromedriver)\b'
+          if grep -rEn "$PATTERNS" src/ scripts/ 2>/dev/null; then
+            echo "::error::Browser-automation import found in src/ or scripts/. See CLAUDE.md anti-pattern #10."
+            exit 1
+          fi
+          echo "OK: no forbidden imports."
+      - name: Forbidden Python deps in pyproject.toml
+        run: |
+          set -euo pipefail
+          PATTERNS='(puppeteer|playwright|selenium|webdriver-manager|browser-use|pyppeteer|splinter|undetected-chromedriver)'
+          # Match dependency rows; allow transitive lock-file presence
+          # (uv.lock can carry a dep that nothing in pyproject.toml asks for).
+          if grep -iEn "^[[:space:]]*\"$PATTERNS" pyproject.toml 2>/dev/null; then
+            echo "::error::Browser-automation package in pyproject.toml. See CLAUDE.md anti-pattern #10."
+            exit 1
+          fi
+          echo "OK: no forbidden Python deps."
+      - name: Forbidden UI deps in package.json (production)
+        run: |
+          set -euo pipefail
+          # Only flag direct deps (not devDependencies — vitest pulls
+          # @vitest/browser-playwright transitively; that's allowed as
+          # long as nothing actually invokes browser mode).
+          python3 - <<'EOF'
+          import json, re, sys
+          forbidden = re.compile(
+              r'(puppeteer|^playwright$|selenium|webdriver|browser-use|@playwright/)',
+              re.IGNORECASE,
+          )
+          pj = json.load(open('ui/package.json'))
+          deps = pj.get('dependencies', {}) or {}
+          hits = [d for d in deps if forbidden.search(d)]
+          if hits:
+              print(f"::error::Browser-automation in ui dependencies: {hits}. See CLAUDE.md anti-pattern #10.")
+              sys.exit(1)
+          # Also assert vitest config doesn't enable browser mode.
+          cfg = open('ui/vite.config.ts').read()
+          if re.search(r'environment\s*:\s*["\']browser["\']', cfg) or \
+             re.search(r'browser\s*:\s*\{[^}]*enabled\s*:\s*true', cfg, re.S):
+              print("::error::ui/vite.config.ts enables browser mode. See CLAUDE.md anti-pattern #10.")
+              sys.exit(1)
+          print("OK: no forbidden UI deps; vitest is in jsdom mode.")
+          EOF

@@ -1,0 +1,8 @@
+{
+  "name": "usage-metering",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": { "build": "tsc", "test": "vitest run" },
+  "dependencies": {},
+  "devDependencies": { "typescript": "^5.4.0", "vitest": "^1.6.0" }
+}

@@ -1,0 +1,33 @@
+title = "Bifrost gitleaks config"
+
+[extend]
+useDefault = true
+
+# Benchmark question ids such as "key: q3-acme-failure-handling" read as API keys.
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "benchmark question ids in the acme sample set"
+paths = ['''(^|/)docs/benchmarks/acme\.yml$''']
+[[rules.allowlists]]
+description = "synthetic credentials fed to the secret scrubber"
+paths = [
+  '''(^|/)tests/test_extraction_infra\.py$''',
+  '''(^|/)tests/test_secret_scrubbing\.py$''',
+  '''(^|/)tests/test_subprocess_env\.py$''',
+]
+
+[[rules]]
+id = "github-pat"
+[[rules.allowlists]]
+description = "synthetic token fed to the secret scrubber"
+paths = ['''(^|/)tests/test_secret_scrubbing\.py$''']
+
+[[rules]]
+id = "private-key"
+[[rules.allowlists]]
+description = "truncated placeholder key fed to the secret scrubber"
+paths = [
+  '''(^|/)tests/test_extraction_infra\.py$''',
+  '''(^|/)tests/test_secret_scrubbing\.py$''',
+]

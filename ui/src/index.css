@@ -1,0 +1,430 @@
+/*
+ * Bifrost — "Studio" design system
+ *
+ * Professional, product-first. Linear / Vercel caliber.
+ * Dark-first (engineers prefer it); light mode fully supported.
+ * Calm surfaces, one subtle teal accent, sans-serif everywhere,
+ * rounded-md corners, subtle shadows, meaningful motion only.
+ */
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Raw palette ────────────────────────────────────────────────── */
+/* Dark mode primary (default).
+   Values borrow from modern product tools (Linear/Vercel slate system). */
+
+:root, .dark {
+    /* Surfaces */
+    --bg-0: hsl(220 13% 9%);
+    --bg-1: hsl(220 11% 12%);
+    --bg-2: hsl(220 10% 16%);
+    --bg-3: hsl(220 9% 20%);
+    --bg-4: hsl(220 8% 24%);
+
+    /* Borders / rules */
+    --border: hsl(220 8% 18%);
+    --border-strong: hsl(220 8% 28%);
+    --border-focus: hsl(175 70% 45%);
+
+    /* Foreground */
+    --fg-0: hsl(210 20% 98%);
+    --fg-1: hsl(210 14% 82%);
+    --fg-2: hsl(210 10% 60%);
+    --fg-3: hsl(210 8% 42%);
+    --fg-4: hsl(210 6% 28%);
+
+    /* Brand accent — muted teal (not generic blue, not saturated primary) */
+    --accent: hsl(175 70% 50%);
+    --accent-hover: hsl(175 75% 44%);
+    --accent-fg: hsl(180 100% 6%);
+    --accent-soft: hsl(175 70% 50% / 0.12);
+    --accent-ring: hsl(175 70% 50% / 0.35);
+
+    /* Semantic status — five-tone palette.
+     *
+     * Each tone maps to a UX role rather than a Tailwind colour name,
+     * so every component speaks one vocabulary:
+     *
+     *   ok      (emerald)  — open, done, success, code-verified
+     *   warn    (amber)    — blocked, needs-attention
+     *   err     (rose)     — escalated, failed
+     *   info    (blue)     — awaiting, informational, jira
+     *   review  (violet)   — drafting, in-review, PR pending
+     *
+     * Each tone has a paired `-soft` token that is the *only*
+     * background a status pill should use. Solid colour is reserved
+     * for the foreground (text/icon). This is the soft-tint
+     * signature: tinted bg + same-hue darker text, no
+     * borders, no rings. It reads as "this is a label" instantly
+     * and works in light + dark without re-tinting. */
+    --ok: hsl(142 66% 52%);
+    --ok-soft: hsl(142 66% 52% / 0.12);
+    --warn: hsl(38 92% 56%);
+    --warn-soft: hsl(38 92% 56% / 0.14);
+    --err: hsl(0 68% 62%);
+    --err-soft: hsl(0 68% 62% / 0.14);
+    --info: hsl(212 75% 64%);
+    --info-soft: hsl(212 75% 64% / 0.14);
+    --review: hsl(265 75% 68%);
+    --review-soft: hsl(265 75% 68% / 0.14);
+}
+
+/* Light mode — inverse, clean whites */
+.light {
+    --bg-0: hsl(210 20% 99%);
+    --bg-1: hsl(210 18% 97%);
+    --bg-2: hsl(210 14% 94%);
+    --bg-3: hsl(210 12% 90%);
+    --bg-4: hsl(210 10% 86%);
+
+    --border: hsl(210 14% 89%);
+    --border-strong: hsl(210 10% 72%);
+    --border-focus: hsl(175 70% 40%);
+
+    --fg-0: hsl(220 18% 12%);
+    --fg-1: hsl(220 14% 28%);
+    --fg-2: hsl(220 10% 48%);
+    --fg-3: hsl(220 8% 60%);
+    --fg-4: hsl(220 6% 74%);
+
+    --accent: hsl(175 80% 35%);
+    --accent-hover: hsl(175 85% 28%);
+    --accent-fg: hsl(0 0% 100%);
+    --accent-soft: hsl(175 80% 35% / 0.09);
+    --accent-ring: hsl(175 80% 35% / 0.28);
+
+    --ok: hsl(142 68% 38%);
+    --ok-soft: hsl(142 68% 38% / 0.10);
+    --warn: hsl(32 92% 46%);
+    --warn-soft: hsl(32 92% 46% / 0.10);
+    --err: hsl(0 68% 50%);
+    --err-soft: hsl(0 68% 50% / 0.08);
+    --info: hsl(212 82% 48%);
+    --info-soft: hsl(212 82% 48% / 0.08);
+    --review: hsl(265 65% 52%);
+    --review-soft: hsl(265 65% 52% / 0.10);
+}
+
+:root { color-scheme: dark; }
+.light { color-scheme: light; }
+
+/* ─── Shadcn legacy token mapping (so shadcn primitives still work) */
+
+:root, .dark, .light {
+    --background: var(--bg-0);
+    --foreground: var(--fg-0);
+    --card: var(--bg-1);
+    --card-foreground: var(--fg-0);
+    --popover: var(--bg-2);
+    --popover-foreground: var(--fg-0);
+    --primary: var(--accent);
+    --primary-foreground: var(--accent-fg);
+    --secondary: var(--bg-2);
+    --secondary-foreground: var(--fg-0);
+    --muted: var(--bg-2);
+    --muted-foreground: var(--fg-2);
+    --accent-foreground: var(--fg-0);
+    --destructive: var(--err);
+    --input: var(--border);
+    --ring: var(--accent-ring);
+    --chart-1: var(--accent);
+    --chart-2: var(--info);
+    --chart-3: var(--ok);
+    --chart-4: var(--warn);
+    --chart-5: var(--fg-2);
+    --radius: 0.5rem;
+    --sidebar: var(--bg-0);
+    --sidebar-foreground: var(--fg-1);
+    --sidebar-primary: var(--accent);
+    --sidebar-primary-foreground: var(--accent-fg);
+    --sidebar-accent: var(--bg-2);
+    --sidebar-accent-foreground: var(--fg-0);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--accent-ring);
+}
+
+/* ─── Typography + Tailwind theme binding ────────────────────────── */
+
+@theme inline {
+    --font-sans: 'Geist Variable', ui-sans-serif, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: 'Geist Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --font-heading: var(--font-sans);
+
+    /* Surfaces */
+    --color-bg-0: var(--bg-0);
+    --color-bg-1: var(--bg-1);
+    --color-bg-2: var(--bg-2);
+    --color-bg-3: var(--bg-3);
+    --color-bg-4: var(--bg-4);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-border-focus: var(--border-focus);
+
+    /* Foreground */
+    --color-fg-0: var(--fg-0);
+    --color-fg-1: var(--fg-1);
+    --color-fg-2: var(--fg-2);
+    --color-fg-3: var(--fg-3);
+    --color-fg-4: var(--fg-4);
+
+    /* Accent */
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-accent-fg: var(--accent-fg);
+    --color-accent-soft: var(--accent-soft);
+    --color-accent-ring: var(--accent-ring);
+
+    /* Status */
+    --color-ok: var(--ok);
+    --color-ok-soft: var(--ok-soft);
+    --color-warn: var(--warn);
+    --color-warn-soft: var(--warn-soft);
+    --color-err: var(--err);
+    --color-err-soft: var(--err-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+    --color-review: var(--review);
+    --color-review-soft: var(--review-soft);
+
+    /* Shadcn-compatible mirror (kept so existing shadcn primitives work) */
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.625rem;
+    --radius-xl: 0.875rem;
+}
+
+/* ─── Base styles ────────────────────────────────────────────────── */
+
+@layer base {
+    *,
+    ::before,
+    ::after {
+        border-color: var(--border);
+    }
+
+    html {
+        font-family: var(--font-sans);
+        font-feature-settings: "ss01", "cv11";
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        background: var(--bg-0);
+        color: var(--fg-0);
+        /* Lock the body baseline weight so the variable font's wght
+         * axis renders at 400, not whatever the UA stylesheet
+         * negotiates with the browser default. Without this, some
+         * environments render "regular" text closer to 500-550 which
+         * collapses the visual gap between body and <strong>, making
+         * everything look bold. */
+        font-weight: 400;
+    }
+
+    body {
+        background: var(--bg-0);
+        /* Body text uses fg-1 (slightly muted) so <strong>/<h*>
+         * elements styled with fg-0 stand out distinctly. With
+         * fg-0 on both, paragraph-leading bold phrases ("**X.**
+         * detail...") visually merged with the rest of the
+         * paragraph and the entire answer read as solid bold. */
+        color: var(--fg-1);
+        font-synthesis: none;
+        font-weight: 400;
+    }
+
+    /* Headings, labels, and explicit emphasis use the brighter fg-0
+     * by default in Tailwind classnames. Keep that — it's what the
+     * Prose component relies on to differentiate bold from body. */
+
+    /* All monospace is tabular + slashed-zero for data readability */
+    code, kbd, samp, pre, .font-mono, [class*="font-mono"] {
+        font-family: var(--font-mono);
+        font-feature-settings: "tnum", "zero", "ss01";
+    }
+
+    /* Tabular nums applied globally to numerics — cleaner than forcing mono */
+    .tabular {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "tnum";
+    }
+
+    /* Focus ring */
+    :focus-visible {
+        outline: 2px solid var(--border-focus);
+        outline-offset: 2px;
+        border-radius: 0.25rem;
+    }
+
+    ::selection {
+        background: var(--accent-soft);
+        color: var(--fg-0);
+    }
+
+    /* Subtle scrollbars */
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--bg-3);
+        border: 3px solid transparent;
+        border-radius: 10px;
+        background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--bg-4);
+        background-clip: padding-box;
+    }
+}
+
+
+/* ─── Component primitives ───────────────────────────────────────
+ *
+ * One shared vocabulary every component reaches for, so the inbox
+ * panel, sidebar badges, command palette, learning page, and any
+ * future surface speak the same visual language. Drift from this
+ * layer (e.g., a one-off ``bg-violet-500/15``) is what created the
+ * inconsistency the redesign is fixing.
+ *
+ * Soft-tint badge pattern: tinted background + same-hue darker text, no border, no
+ * ring. Reads as "label, not button" at a glance. */
+
+@layer components {
+    /* Status badge — soft tint + tone-coloured text. Always pair
+     * one of the tone modifiers below with the base ``.badge``. */
+    .badge {
+        @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5
+               font-medium leading-4;
+        font-size: 11px;
+    }
+    .badge-ok      { @apply bg-ok-soft text-ok; }
+    .badge-warn    { @apply bg-warn-soft text-warn; }
+    .badge-err     { @apply bg-err-soft text-err; }
+    .badge-info    { @apply bg-info-soft text-info; }
+    .badge-review  { @apply bg-review-soft text-review; }
+    .badge-neutral { @apply bg-bg-3 text-fg-2; }
+
+    /* Compact section overline — sits above section content like a
+     * caption ("ESCALATED · 3"). Mono so it reads as a label, never
+     * prose. Used by every list/card grouping. */
+    .section-title {
+        @apply text-[10.5px] font-semibold uppercase tracking-wider text-fg-3;
+        font-family: var(--font-mono);
+    }
+
+    /* Flush list row — collapses card-per-item overhead. Place inside
+     * a card with ``divide-y divide-border`` to get clean separators. */
+    .row {
+        @apply flex items-center gap-3 px-4 py-2.5 text-[12.5px];
+    }
+
+    /* 6×6 status dot. Compose with a tone class
+     * (``bg-ok``, ``bg-err``, etc.) and optionally ``.live-pulse``. */
+    .dot {
+        @apply inline-block h-1.5 w-1.5 shrink-0 rounded-full;
+    }
+
+    /* Heartbeat. 1.8s period — coprime with the 30s inbox refetch and
+     * 5s SSE reconnect so the eye never sees a beat-locked flicker. */
+    .live-pulse {
+        animation: livepulse 1.8s ease-in-out infinite;
+    }
+
+    /* Keyboard shortcut badge. */
+    .kbd {
+        @apply inline-flex h-5 min-w-5 items-center justify-center
+               rounded border border-border bg-bg-2 px-1
+               font-mono text-[10px] text-fg-2;
+    }
+
+    /* Skeleton loader. */
+    .skel {
+        @apply animate-pulse rounded-md bg-bg-2;
+    }
+
+    /* Glass-morphic surface — subtle blur for sticky bars over
+     * scrolled content. ``backdrop-filter`` only paints when there
+     * is content underneath, so this is a no-op when nothing is
+     * behind it (i.e., on first paint). */
+    .glass {
+        background: color-mix(in srgb, var(--bg-1) 80%, transparent);
+        backdrop-filter: saturate(140%) blur(8px);
+    }
+}
+
+
+/* ─── Coprime keyframes ──────────────────────────────────────────
+ *
+ * Periods are picked so they do NOT divide our common poll cycles
+ * (30s inbox, 5s SSE, 1s status). Decorative motion that beats
+ * against data refreshes reads as "broken/flickering" — these
+ * intervals stay out of phase. */
+
+@keyframes livepulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+}
+
+@keyframes indeterminate {
+    0%   { transform: translateX(0%); }
+    100% { transform: translateX(350%); }
+}
+
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ring-pulse {
+    0%   { box-shadow: 0 0 0 0 var(--accent-ring); }
+    70%  { box-shadow: 0 0 0 10px hsl(0 0% 0% / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(0 0% 0% / 0); }
+}
+
+
+/* ─── Reduced-motion guard ───────────────────────────────────────
+ *
+ * Honours OS-level preference. 0.01ms (not 0) so ``transitionend``
+ * and ``animationend`` listeners still fire — components that wait
+ * for those events won't hang. */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

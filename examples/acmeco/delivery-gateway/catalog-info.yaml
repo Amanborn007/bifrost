@@ -1,0 +1,18 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: delivery-gateway
+  description: Outbound HTTP delivery with retries and a per-endpoint circuit breaker
+  labels:
+    region: us-eu
+  annotations:
+    github.com/project-slug: acmeco/delivery-gateway
+    acmeco.example/tier: "1"
+    acmeco.example/regions: "us,eu"
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/dlvr
+  system: webhook-delivery
+  dependsOn:
+    - component:default/signing-keys

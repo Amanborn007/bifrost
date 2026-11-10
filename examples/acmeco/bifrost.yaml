@@ -1,0 +1,32 @@
+# Example configuration for the fictional "acmeco" sample repos in this directory.
+# Use with: cp examples/acmeco/bifrost.yaml bifrost.yaml
+
+org:
+  name: acmeco
+
+sources:
+  github:
+    host: github.com
+    orgs: [acmeco]
+  jira:
+    base_url: https://acmeco.atlassian.net
+  local:
+    allowed_roots: []
+
+manifest:
+  providers: [backstage, codeowners]
+
+linking:
+  internal_package_prefixes:
+    - "com.acmeco."
+    - "@acmeco/"
+    - "github.com/acmeco/"
+
+conventions:
+  jira_project_key: "{TEAM}"
+  confluence_space_key: "{TEAM}"
+  slack_channel: "#{team}"
+  placeholder_teams: []
+
+identity:
+  provider: none

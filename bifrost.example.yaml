@@ -1,0 +1,116 @@
+# Bifrost company configuration. Copy to bifrost.yaml (or point BIFROST_CONFIG at it).
+#
+# Lookup: BIFROST_CONFIG=<path> uses that file (it must exist); BIFROST_CONFIG=""
+# loads no file; if unset, ./bifrost.yaml is used when present.
+# Precedence: init kwargs > env > .env > this file > defaults.
+# Any value can be overridden from the environment with "__" nesting,
+# e.g. BIFROST_SOURCES__JIRA__BASE_URL=https://example.atlassian.net
+# Unknown keys are rejected at startup.
+
+org:
+  # Display name of your organization. Empty is fine.
+  name: ""
+
+sources:
+  github:
+    host: github.com
+    # GitHub orgs whose repositories Bifrost may discover and clone.
+    orgs: []
+  jira:
+    # Base URL used to build issue links (<base_url>/browse/KEY-1). Empty disables links.
+    base_url: ""
+    # Older Jira only: custom Epic Link field (customfield_NNNNN). Unset uses the standard `parent`.
+    # epic_link_field: customfield_10014
+    # Live issue fetch for task enrichment; set both or neither. Keep the token out of this
+    # file: BIFROST_SOURCES__JIRA__EMAIL and BIFROST_SOURCES__JIRA__API_TOKEN in the environment.
+    # email: bot@example.com
+  # Self-hosted Confluence root; Atlassian Cloud wiki links always match.
+  # confluence:
+  #   base_url: https://wiki.example.com
+  local:
+    # Directories under which local checkouts may be registered.
+    allowed_roots: []
+
+mcp:
+  # Prefix of the tool names your MCP servers expose to `claude -p`.
+  # Each value must match ^mcp__[\w-]+__$. Omitted servers keep these defaults.
+  tool_prefix:
+    atlassian: mcp__atlassian__
+    github: mcp__github__
+    slack: mcp__claude_ai_Slack__
+    slack_write: mcp__plugin_slack_slack__
+    gdrive: mcp__claude_ai_Google_Drive__
+
+manifest:
+  # Ownership/metadata providers, in order. Known: backstage, codeowners, generic_yaml.
+  providers: [backstage, codeowners]
+  # Config files read from each repo to learn runtime settings.
+  config_globs:
+    - "config/*.env"
+    - ".env.example"
+    - "docker-compose*.y*ml"
+    - "helm/**/values*.yaml"
+    - "charts/**/values*.yaml"
+  remote_config_globs: false
+  max_file_bytes: 262144
+  backstage:
+    paths: [catalog-info.yaml, catalog-info.yml]
+    # Map Backstage annotation / label keys onto Bifrost fields.
+    annotation_map: {}
+    label_map: {}
+  codeowners:
+    paths: [CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS]
+    # Turn "@my-org/team-a" into "team-a".
+    strip_org_prefix: true
+  generic_yaml:
+    # Path to an in-repo YAML manifest, and a field-name map. Empty path disables it.
+    path: ""
+    fields: {}
+    config_blocks: []
+
+linking:
+  # Package/module prefixes that mark a dependency as internal,
+  # e.g. ["com.example.", "@example/", "github.com/example/"].
+  internal_package_prefixes: []
+
+conventions:
+  # Templates used when drafting tickets and messages. {TEAM} and {team} are
+  # replaced with the owning team's key and lowercase name.
+  jira_project_key: "{TEAM}"
+  confluence_space_key: "{TEAM}"
+  slack_channel: "#{team}"
+  # Team names that are placeholders rather than real owners.
+  placeholder_teams: []
+
+identity:
+  # none      = local operator from BIFROST_OPERATOR_EMAIL (demo principal in demo mode).
+  #             Loopback clients only, and the operator is an admin.
+  # header    = a trusted reverse proxy (oauth2-proxy, Pomerium) forwards the user.
+  # oidc_jwt  = Authorization: Bearer <JWT> verified against a JWKS.
+  provider: none
+  # header mode only: confirm a reverse proxy strips client-supplied copies of these headers.
+  trusted_proxy: false
+  demo_email: demo@example.com
+  header:
+    email: X-Forwarded-Email
+    groups: X-Forwarded-Groups
+    # Only peers inside these CIDRs may set the headers above; from anyone else
+    # they are ignored and stripped. Set this to your proxy's address range.
+    trusted_proxy_cidrs: ["127.0.0.0/8", "::1/128"]
+  oidc:
+    jwks_url: ""
+    issuer: ""
+    audience: ""
+    groups_claim: groups
+  # Required with header and oidc_jwt. IdP groups that get the admin role;
+  # every other signed-in user is a member. Use {admin: []} to grant admin
+  # through api_tokens only. A raw group named "bifrost-admin" is not special.
+  # roles:
+  #   admin: [eng-platform-admins]
+
+# API tokens for the CLI and CI. Mint one with `bifrost token new`, keep the
+# token, and list only its sha256 here. Several can be active during rotation.
+api_tokens: []
+#  - name: ci
+#    sha256: <64 hex characters>
+#    roles: [member]   # member or admin

@@ -1,0 +1,53 @@
+# Dependabot — automatic dependency updates.
+#
+# Tracks the three ecosystems used by Bifrost (pip, npm, GitHub Actions).
+# Limits are intentionally low so review queues stay manageable.
+
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "python"]
+    groups:
+      # Group patch/minor LLM-SDK and runtime updates so we don't get
+      # one PR per ecosystem on busy weeks.
+      python-runtime:
+        applies-to: version-updates
+        patterns: ["fastapi", "starlette", "uvicorn", "pydantic*", "sqlalchemy", "alembic", "asyncpg", "httpx"]
+        update-types: ["patch", "minor"]
+      python-llm:
+        applies-to: version-updates
+        patterns: ["anthropic", "sentence-transformers", "transformers", "torch"]
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ui"]
+    groups:
+      ui-runtime:
+        applies-to: version-updates
+        patterns: ["react*", "@tanstack/*", "react-router-dom"]
+        update-types: ["patch", "minor"]
+      ui-tooling:
+        applies-to: version-updates
+        patterns: ["vite*", "vitest*", "typescript*", "eslint*", "@typescript-eslint/*"]
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "ci"]

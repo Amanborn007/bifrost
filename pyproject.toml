@@ -1,0 +1,121 @@
+[project]
+name = "bifrost"
+version = "0.1.0"
+description = "AI-powered engineering knowledge platform"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Aman Kumar" }]
+requires-python = ">=3.12"
+dependencies = [
+    # Core
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.0",
+    # Database
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pgvector>=0.4.2",
+    # Web
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.47.0",
+    # CLI
+    "typer>=0.25.1",
+    "rich>=15.0.0",
+    # AI
+    "anthropic>=0.103.1",
+    # Local embeddings — 384-dim MiniLM, runs on CPU, no API keys.
+    # Used for semantic retrieval of entities, Confluence pages, Jira issues.
+    "sentence-transformers>=2.7",
+    "pyyaml>=6.0",
+    # HTTP client
+    "httpx>=0.27",
+    # Logging
+    "structlog>=25.5.0",
+    # JWT signature verification: with identity.provider=oidc_jwt the
+    # verifier validates the JWT against a JWKS endpoint before trusting
+    # any claim. The `[crypto]` extra pulls in `cryptography` for the
+    # RS256 / ES256 algorithms.
+    "pyjwt[crypto]>=2.13.0",
+    "aiohttp>=3.14.0",
+    "python-dotenv>=1.2.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/Amanborn007/bifrost"
+Repository = "https://github.com/Amanborn007/bifrost"
+Issues = "https://github.com/Amanborn007/bifrost/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-timeout>=2.3",
+    "testcontainers[postgres]>=4.14.2",
+    "pyright>=1.1.409",
+    "ruff>=0.8",
+]
+
+[project.scripts]
+bifrost = "bifrost.cli.app:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bifrost", "extraction_probe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "extraction_probe"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.pyright]
+pythonVersion = "3.12"
+include = ["src/bifrost"]
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
+ignore = [
+    # TypeAlias syntax preferred over `type` keyword for Pydantic compat.
+    "UP040",
+    # ── Codebase-wide style baselines ─────────────────────────────
+    # Tolerated rather than mass-rewritten; tighten one rule at a
+    # time when a focused PR cleans up the call sites.
+    "E402",   # module-import-not-at-top — many deferred imports are
+              # intentional (lazy loading to break cycles / skip heavy
+              # deps at module load).
+    "E501",   # line-too-long — formatter already enforces 100-char
+              # wrap; remaining hits are mostly URLs / long error
+              # strings where wrapping harms grep-ability.
+    "B904",   # raise-without-from inside except — would change the
+              # exception cause for ~26 sites at once.
+    "B007",   # unused-loop-control-variable — sometimes intentional
+              # when iterating for side effects.
+    "B017",   # assert-raises-Exception — single occurrence in tests.
+    "N806",   # non-lowercase-variable-in-function — uppercase locals
+              # show up in factory / SQL / dataclass scope by design.
+    "N818",   # error-suffix-on-exception-name — renaming every
+              # exception class is a separate PR.
+    "E741",   # ambiguous-variable-name (single-letter) — one site.
+    "SIM102", # collapsible-if — readability, not correctness.
+    "SIM105", # use-contextlib-suppress — try/except/pass is clearer
+              # at most current call sites.
+    "SIM108", # if-else-block-instead-of-if-exp — readability.
+    "SIM110", # reimplemented-builtin — narrow scope.
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+]

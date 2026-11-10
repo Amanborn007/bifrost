@@ -1,0 +1,85 @@
+name: Leak gate
+
+# Term check reads the LEAK_DENYLIST secret. Fork PRs get no secrets, so only
+# the always-on secret scan runs there and the denylist-gated tests skip.
+# Never use pull_request_target.
+#
+# Every test module that imports tests/leak_terms.py must be listed in one of
+# the pytest commands below; tests/test_leak_terms_wiring.py enforces it.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  leak-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      - name: Run leak gate
+        env:
+          DENYLIST_CONTENT: ${{ secrets.LEAK_DENYLIST }}
+          BIFROST_SKIP_DB_MIGRATIONS: "1"
+        run: |
+          if [ -n "$DENYLIST_CONTENT" ]; then
+            f="$(mktemp)"
+            printf '%s\n' "$DENYLIST_CONTENT" > "$f"
+            export LEAK_DENYLIST="$f"
+          fi
+          python -m pytest -q -p no:cacheprovider --noconftest tests/test_leak_gate.py
+
+  leak-terms:
+    # The assert-absence tests need the bifrost package and the conftest
+    # fixtures, so they run with the locked deps and a Postgres service.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.0-pg16
+        env:
+          POSTGRES_USER: bifrost
+          POSTGRES_PASSWORD: bifrost_dev
+          POSTGRES_DB: bifrost_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bifrost -d bifrost_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://bifrost:bifrost_dev@localhost:5432/bifrost_test
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+      - run: pip install uv==0.4.30
+      - run: uv sync --locked --all-extras --dev
+      - name: Run denylist-gated tests
+        env:
+          DENYLIST_CONTENT: ${{ secrets.LEAK_DENYLIST }}
+        run: |
+          if [ -n "$DENYLIST_CONTENT" ]; then
+            f="$(mktemp)"
+            printf '%s\n' "$DENYLIST_CONTENT" > "$f"
+            export LEAK_DENYLIST="$f"
+          fi
+          uv run pytest -q -p no:cacheprovider \
+            tests/test_cross_repo_hint_prefixes.py \
+            tests/test_domain_discover_repos.py \
+            tests/test_followups_build_intent.py \
+            tests/test_neutral_names.py \
+            tests/test_catalog_adapters_are_pluggable.py \
+            tests/test_ownership_sources.py \
+            tests/test_schema_baseline.py

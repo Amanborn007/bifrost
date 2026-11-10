@@ -1,0 +1,16 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: usage-metering
+  description: Aggregates delivery usage from BILLING_TOPIC into billing rollups
+  labels:
+    region: us-eu
+  annotations:
+    github.com/project-slug: acmeco/usage-metering
+    acmeco.example/tier: "2"
+    acmeco.example/regions: "us,eu"
+spec:
+  type: service
+  lifecycle: experimental
+  owner: group:default/plat
+  system: webhook-delivery

@@ -1,0 +1,66 @@
+# ── Local agent tooling, not published ─────────────────────
+/.claude/
+
+# ── Secrets + local config ────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.claude/settings.local.json
+
+# ── Local script output ───────────────────────────────────────
+.bifrost-out/
+
+# ── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ── Node / Vite ────────────────────────────────────────────────
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/coverage/
+*.tsbuildinfo
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# ── Local state / runtime ─────────────────────────────────────
+nohup.out
+*.log
+/tmp/bifrost-*
+.python-version
+*.pid
+
+# ── Worktrees created by the action-layer executor ────────────
+.claude/worktrees/
+
+# ── Bifrost runtime artifacts ─────────────────────────────────
+/tmp/bifrost-checkpoints/
+/tmp/bifrost-clones/
+/tmp/bifrost_claude_cli_cwd/
+/tmp/bifrost_st_cache/
+
+# Handover/brief artifacts (sessions + repo-scoped handovers).
+# These are operator-generated Markdown owned by the local machine,
+# not source code; tracking them would treat user content as a
+# canonical artifact and create merge conflicts on regeneration.
+docs/handovers/
+
+
+/bifrost.yaml

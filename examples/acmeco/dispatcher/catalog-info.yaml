@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dispatcher
+  description: Fan-out worker that consumes DELIVERY_QUEUE and drives deliveries
+  labels:
+    region: us-eu
+  annotations:
+    github.com/project-slug: acmeco/dispatcher
+    acmeco.example/tier: "1"
+    acmeco.example/regions: "us,eu"
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/dlvr
+  system: webhook-delivery
+  dependsOn:
+    - component:default/delivery-gateway
+    - component:default/usage-metering

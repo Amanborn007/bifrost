@@ -1,0 +1,26 @@
+name: Gitleaks
+
+# Needs no secret, so it runs on fork PRs too. Never use pull_request_target.
+# The scanner is the upstream image pinned by digest (v8.28.0): no marketplace
+# action to trust and no license key to manage.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Scan tracked files
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            zricethezav/gitleaks@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854 \
+            dir /repo --config /repo/.gitleaks.toml --redact=100 --no-banner

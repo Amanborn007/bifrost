@@ -1,0 +1,242 @@
+# AcmeCo webhook-delivery demo org. Seed the repos first:
+#   uv run python scripts/seed_acmeco.py --register
+# Needles are literally true of examples/acmeco/** and its seeded git history.
+
+domain: acme
+description: |
+  AcmeCo (fictional) runs a multi-region webhook delivery platform in two
+  data-residency regions, us and eu. Team DLVR owns webhook-api, dispatcher
+  and delivery-gateway. Team PLAT owns signing-keys and usage-metering.
+
+questions:
+  # ─── BROAD (q1-q3) ──────────────────────────────────────────────────
+  - key: q1-acme-service-map
+    text: "What services does the AcmeCo webhook delivery platform consist of and how do they connect to each other?"
+    paraphrase: "Give me an overview of the AcmeCo webhook delivery services and their dependencies."
+    scope_repo_names: ["webhook-api", "dispatcher", "delivery-gateway", "signing-keys", "usage-metering"]
+    expected_entities:
+      - urn:bifrost:service:webhook-api
+      - urn:bifrost:service:dispatcher
+      - urn:bifrost:service:delivery-gateway
+      - urn:bifrost:service:signing-keys
+      - urn:bifrost:service:usage-metering
+    expected_key_facts:
+      - {needle: "webhook-api", why: "public ingest and subscriptions service"}
+      - {needle: "dispatcher", why: "fan-out worker between ingest and delivery"}
+      - {needle: "delivery-gateway", why: "outbound HTTP delivery"}
+      - {needle: "signing-keys", why: "HMAC secret service called by the gateway"}
+      - {needle: "usage-metering", why: "billing usage aggregation"}
+    tier_floor: 1
+    expects_diagram: true
+    metadata:
+      kind: broad-service-map
+      difficulty: easy
+
+  - key: q2-acme-event-lifecycle
+    text: |
+      Trace one webhook event end to end: from the moment it is accepted at the
+      API to the outbound HTTP call to the customer, including signing and usage
+      reporting. Which queues, topics and endpoints does it pass through?
+    paraphrase: "What is the life of an event from ingest to the customer's endpoint?"
+    scope_repo_names: ["webhook-api", "dispatcher", "delivery-gateway", "signing-keys", "usage-metering"]
+    expected_entities:
+      - urn:bifrost:service:webhook-api
+      - urn:bifrost:service:dispatcher
+      - urn:bifrost:service:delivery-gateway
+      - urn:bifrost:service:signing-keys
+    expected_key_facts:
+      - {needle: "DELIVERY_QUEUE", why: "webhook-api hands events to the dispatcher through this queue"}
+      - {needle: "/v1/deliver", why: "the dispatcher calls this delivery-gateway endpoint"}
+      - {needle: "X-Acme-Signature", why: "header carrying the HMAC signature to the customer"}
+      - {needle: "BILLING_TOPIC", why: "dispatcher reports usage after each attempt"}
+    tier_floor: 1
+    expects_diagram: true
+    metadata:
+      kind: broad-flow
+      difficulty: medium
+
+  - key: q3-acme-failure-handling
+    text: |
+      How does the platform cope with customer endpoints that are slow or down?
+      Describe the retry behaviour and any protection against repeatedly hitting
+      a dead endpoint, and name the service responsible.
+    paraphrase: "What happens when a customer's webhook URL keeps failing?"
+    scope_repo_names: ["delivery-gateway", "dispatcher"]
+    expected_entities:
+      - urn:bifrost:service:delivery-gateway
+      - urn:bifrost:repo/delivery-gateway
+    expected_key_facts:
+      - {needle: "backoff", why: "failed deliveries are retried with exponential backoff"}
+      - {needle: "circuit breaker", why: "per-endpoint breaker stops repeated calls to a dead URL"}
+      - {needle: "delivery-gateway", why: "the service that owns retries and the breaker"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: broad-behaviour
+      difficulty: medium
+
+  # ─── SPECIFIC (q4-q7) ───────────────────────────────────────────────
+  - key: q4-dispatcher-gateway-host
+    text: "How does the dispatcher reach delivery-gateway — which setting holds the address and which endpoint does it call?"
+    scope_repo_names: ["dispatcher"]
+    expected_entities:
+      - urn:bifrost:service:dispatcher
+      - urn:bifrost:service:delivery-gateway
+    expected_key_facts:
+      - {needle: "DELIVERY_GATEWAY_HOST", why: "the setting that addresses delivery-gateway"}
+      - {needle: "/v1/deliver", why: "the endpoint the dispatcher POSTs to"}
+      - {needle: "GatewayClient", why: "the dispatcher class that makes the call"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: single-edge
+      difficulty: easy
+
+  - key: q5-webhook-api-dispatcher-queue
+    text: |
+      How does webhook-api hand events to the dispatcher? Name the queue setting
+      and the code on each side that publishes and consumes it.
+    paraphrase: "What is the link between webhook-api and the dispatcher?"
+    scope_repo_names: ["webhook-api", "dispatcher"]
+    expected_entities:
+      - urn:bifrost:service:webhook-api
+      - urn:bifrost:service:dispatcher
+    expected_key_facts:
+      - {needle: "DELIVERY_QUEUE", why: "queue setting shared by both services"}
+      - {needle: "IngestService", why: "webhook-api class that publishes to the queue"}
+      - {needle: "DispatchWorker", why: "dispatcher class that handles the consumed events"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: single-edge
+      difficulty: medium
+
+  - key: q6-acme-us-eu-split
+    text: |
+      AcmeCo runs in us and eu for data residency. How do the us and eu
+      deployments differ in the dispatcher's configuration — queue, gateway host
+      and billing topic?
+    paraphrase: "What is different between the eu and us config of the dispatcher?"
+    scope_repo_names: ["dispatcher"]
+    expected_entities:
+      - urn:bifrost:service:dispatcher
+      - urn:bifrost:repo/dispatcher
+    expected_key_facts:
+      - {needle: "delivery-events-eu", why: "the eu DELIVERY_QUEUE value"}
+      - {needle: "delivery-gateway.eu.acmeco.internal", why: "the eu DELIVERY_GATEWAY_HOST value"}
+      - {needle: "billing-usage-eu", why: "the eu BILLING_TOPIC value"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: region-split
+      difficulty: medium
+
+  - key: q7-acme-signing-key-flow
+    text: |
+      How are webhook payloads signed, which service does the signing, and what
+      happens to the old secret when a key is rotated?
+    paraphrase: "Explain webhook signing and secret rotation at AcmeCo."
+    scope_repo_names: ["delivery-gateway", "signing-keys"]
+    expected_entities:
+      - urn:bifrost:service:delivery-gateway
+      - urn:bifrost:service:signing-keys
+    expected_key_facts:
+      - {needle: "SIGNING_KEYS_HOST", why: "setting delivery-gateway uses to reach signing-keys"}
+      - {needle: "HMAC", why: "the signature scheme"}
+      - {needle: "ROTATION_GRACE_HOURS", why: "how long the previous key stays valid after rotation"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: single-flow
+      difficulty: hard
+
+  # ─── OWNERSHIP (q8-q9) ──────────────────────────────────────────────
+  - key: q8-dlvr-ownership
+    text: "Which services does the DLVR team own, and where is that ownership declared?"
+    paraphrase: "What is DLVR responsible for?"
+    scope_repo_names: ["webhook-api", "dispatcher", "delivery-gateway", "signing-keys", "usage-metering"]
+    expected_entities:
+      - urn:bifrost:service:webhook-api
+      - urn:bifrost:service:dispatcher
+      - urn:bifrost:service:delivery-gateway
+    expected_key_facts:
+      - {needle: "@acmeco/dlvr", why: "the CODEOWNERS entry for DLVR repos"}
+      - {needle: "webhook-api", why: "owned by DLVR"}
+      - {needle: "dispatcher", why: "owned by DLVR"}
+      - {needle: "delivery-gateway", why: "owned by DLVR"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: ownership
+      difficulty: easy
+
+  - key: q9-plat-ownership
+    text: |
+      Which services does the PLAT team own, and does PLAT have any ownership
+      inside the repos that DLVR owns?
+    scope_repo_names: ["signing-keys", "usage-metering", "webhook-api", "dispatcher", "delivery-gateway"]
+    expected_entities:
+      - urn:bifrost:service:signing-keys
+      - urn:bifrost:service:usage-metering
+    expected_key_facts:
+      - {needle: "signing-keys", why: "owned by PLAT"}
+      - {needle: "usage-metering", why: "owned by PLAT"}
+      - {needle: "@acmeco/plat", why: "PLAT also co-owns /config/ in the DLVR repos"}
+    tier_floor: 1
+    expects_diagram: false
+    metadata:
+      kind: ownership
+      difficulty: medium
+
+  # ─── HISTORICAL (q10-q11) ───────────────────────────────────────────
+  - key: q10-gateway-retry-history
+    text: |
+      When and why was retry with backoff added to delivery-gateway? Cite the
+      ticket and the parameters that were chosen.
+    paraphrase: "What motivated the delivery-gateway retry policy?"
+    scope_repo_names: ["delivery-gateway"]
+    expected_entities:
+      - urn:bifrost:service:delivery-gateway
+    expected_jira_refs: ["DLVR-12"]
+    expected_key_facts:
+      - {needle: "DLVR-12", why: "ticket on the commit that added retries"}
+      - {needle: "exponential backoff", why: "the retry strategy introduced"}
+    tier_floor: 2
+    expects_diagram: false
+    metadata:
+      kind: historical
+      difficulty: medium
+
+  - key: q11-signing-key-rotation-history
+    text: |
+      Why does signing-keys keep the previous secret valid after a rotation?
+      Cite the ticket that introduced rotation.
+    paraphrase: "What problem did the key rotation grace period solve?"
+    scope_repo_names: ["signing-keys"]
+    expected_entities:
+      - urn:bifrost:service:signing-keys
+    expected_jira_refs: ["PLAT-7"]
+    expected_key_facts:
+      - {needle: "PLAT-7", why: "ticket on the commit that added rotation"}
+      - {needle: "grace period", why: "the overlap window for the old key"}
+    tier_floor: 2
+    expects_diagram: false
+    metadata:
+      kind: historical
+      difficulty: hard
+
+  # ─── NEGATIVE (q12) ─────────────────────────────────────────────────
+  # notification-router does not exist; a good answer admits the gap.
+  - key: q12-acme-notification-router-gap
+    text: |
+      How does the notification-router service decide which on-call engineer to
+      alert when a customer's webhook endpoint keeps failing?
+    scope_repo_names: ["webhook-api", "dispatcher", "delivery-gateway", "signing-keys", "usage-metering"]
+    expected_entities: []
+    expected_key_facts:
+      - {needle: "could not determine", why: "no such service exists; the answer must admit the gap, not invent one"}
+    tier_floor: 3
+    expects_diagram: false
+    metadata:
+      kind: negative
+      difficulty: medium
