@@ -22,7 +22,7 @@ dependencies = [
     "typer>=0.25.1",
     "rich>=15.0.0",
     # AI
-    "anthropic>=0.103.1",
+    "anthropic>=2.6.0",
     # Local embeddings — 384-dim MiniLM, runs on CPU, no API keys.
     # Used for semantic retrieval of entities, Confluence pages, Jira issues.
     "sentence-transformers>=2.7",
