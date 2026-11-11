@@ -17,7 +17,7 @@ dependencies = [
     "pgvector>=0.4.2",
     # Web
     "fastapi>=0.115",
-    "uvicorn[standard]>=0.47.0",
+    "uvicorn[standard]>=0.54.0",
     # CLI
     "typer>=0.25.1",
     "rich>=15.0.0",
