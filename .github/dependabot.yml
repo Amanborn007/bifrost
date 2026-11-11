@@ -1,11 +1,13 @@
 # Dependabot — automatic dependency updates.
 #
-# Tracks the three ecosystems used by Bifrost (pip, npm, GitHub Actions).
+# Tracks the three ecosystems used by Bifrost (uv, npm, GitHub Actions).
+# The uv ecosystem updates pyproject.toml and uv.lock together, so CI's
+# `uv sync --locked` stays green on Dependabot PRs.
 # Limits are intentionally low so review queues stay manageable.
 
 version: 2
 updates:
-  - package-ecosystem: pip
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: weekly
@@ -40,7 +42,13 @@ updates:
         update-types: ["patch", "minor"]
       ui-tooling:
         applies-to: version-updates
-        patterns: ["vite*", "vitest*", "typescript*", "eslint*", "@typescript-eslint/*"]
+        patterns: ["vite*", "vitest*", "typescript*", "eslint*", "@typescript-eslint/*", "@vitejs/*"]
+        update-types: ["patch", "minor"]
+      # Catch-all so @base-ui/*, tslib and anything else not matched above
+      # still arrives as one grouped PR instead of one PR each.
+      ui-other:
+        applies-to: version-updates
+        patterns: ["*"]
         update-types: ["patch", "minor"]
 
   - package-ecosystem: github-actions
@@ -51,3 +59,7 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     labels: ["dependencies", "ci"]
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns: ["*"]

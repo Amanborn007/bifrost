@@ -8,12 +8,12 @@ authors = [{ name = "Aman Kumar" }]
 requires-python = ">=3.12"
 dependencies = [
     # Core
-    "pydantic>=2.13.4",
+    "pydantic>=2.14.3",
     "pydantic-settings>=2.0",
     # Database
-    "sqlalchemy[asyncio]>=2.0",
-    "asyncpg>=0.29",
-    "alembic>=1.13",
+    "sqlalchemy[asyncio]>=2.1.8",
+    "asyncpg>=0.32.0",
+    "alembic>=1.20.1",
     "pgvector>=0.4.2",
     # Web
     "fastapi>=0.115",
