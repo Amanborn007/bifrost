@@ -48,7 +48,7 @@ Issues = "https://github.com/Amanborn007/bifrost/issues"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "pytest-asyncio>=0.24",
+    "pytest-asyncio>=1.4.1.post1",
     "pytest-timeout>=2.3",
     "testcontainers[postgres]>=4.14.2",
     "pyright>=1.1.409",
@@ -117,5 +117,5 @@ ignore = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
+    "pytest-asyncio>=1.4.1.post1",
 ]
