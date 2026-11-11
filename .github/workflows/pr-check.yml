@@ -109,7 +109,7 @@ jobs:
       - name: pip-audit (transitive CVEs)
         run: |
           pip install pip-audit
-          uv export --no-dev --format requirements-txt > /tmp/reqs.txt
+          uv export --no-dev --no-emit-project --format requirements-txt > /tmp/reqs.txt
           pip-audit -r /tmp/reqs.txt --strict
         continue-on-error: true
         # Soft-fail for now until baseline is clean. Convert to hard-fail
